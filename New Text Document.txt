@@ -1,0 +1,62 @@
+Method  MyMethod(a,b)
+Radius= 10
+Count= 10
+Circle Radius
+Endmethod
+MyMethod(10,20)
+
+
+Radius= 10
+Count= 10
+While Count > 0
+Circle Radius
+Radius= Radius + 10
+Count= Count - 1
+Endloop
+
+Method  MyMethod()
+Radius= 10
+Count= 10
+Circle Radius
+Endmethod
+MyMethod()
+
+Method  MyMethod()
+While 2 < 2
+Circle 10
+endloop
+Endmethod
+MyMethod()
+
+
+
+
+Method  MyMethod()
+While 1 < 2
+Circle 10
+endloop
+Endmethod
+MyMethod()
+
+
+
+Circle 50
+rectangle 50 ,50
+triangle 60
+moveto 100,100
+Circle 50
+rectangle 50 ,50
+triangle 60
+drawto 100,100
+Circle 50
+rectangle 50 ,50
+triangle 60
+Fill on
+Circle 50
+rectangle 50 ,50
+triangle 60
+Fill red
+Circle 50
+rectangle 50 ,50
+triangle 60
+Fill off
