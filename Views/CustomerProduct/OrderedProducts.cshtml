@@ -1,0 +1,215 @@
+﻿
+
+@{
+    ViewBag.Title = "Ordered Products";
+}
+<style>
+    img.thumbnail {
+        border: 1px solid #ddd; /* Gray border */
+        border-radius: 4px; /* Rounded border */
+        padding: 5px; /* Some padding */
+        width: 100px; /* Set a small width */
+        max-height: 120px;
+    }
+
+        /* Add a hover effect (blue shadow) */
+        img.thumbnail:hover {
+            box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
+        }
+</style>
+<p>
+    <a href="@Url.Action("CustomerProduct")" class="btn btn-grad"><i class="fas fa-plus-circle"></i> Add New Order</a>
+</p>
+<div class="card shadow-lg">
+    <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">Orders</h6>
+    </div>
+    <div class="card-body">
+        <div class="form-horizontal">
+            <div class="row">
+                <div class="col-12 col-md-4">
+                    <label style="text-align:center">Order Status</label>
+                    <select id="drpOrderStatus" class="form-control" onchange="GetOrderData()">
+                        <option value="0">All</option>
+                        <option value="1" selected>Ordered</option>
+                        <option value="3">Delivered</option>
+                        <option value="4">Canceled</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="saleDate" style="display:block">From Date</label>
+                    <input type="text" id="FromDate" class="form-control datepicker" style="background-color: white;" readonly />
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="saleDate" style="display:block">To Date</label>
+                    <input type="text" id="ToDate" class="form-control datepicker" style="background-color:white;" readonly />
+                </div>
+                <br />
+                <br />
+                <br />
+                <br />
+
+                <div class="table-responsive" id="divOrder" style="margin:20px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="DeleteModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header card-header">
+                <h5 class="modal-title" id="exampleModalLabel">Order</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body card-body">
+                <label>Are you sure you want to cancel order?</label>
+                <form method="post" action="@Url.Action("CancelOrderByCustmer","CustomerProduct")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="hdnDelId" />
+                    <button type="submit" class="btn btn-delete">Yes</button>
+                    <button type="button" class="btn btn-secondary " data-dismiss="modal">No</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            ConfigureDate();
+            GetOrderData();
+
+        });
+        function GetOrderData() {
+
+            var orderStatusId = $("#drpOrderStatus").val();
+            var fromDate = ConvertDateToDDMMYY($("#FromDate").val());
+            var toDate = ConvertDateToDDMMYY($("#ToDate").val());
+            var postData = {
+                OrderStatusId: orderStatusId,
+                FromDate: fromDate,
+                ToDate: toDate
+            };
+            $.ajax({
+                type: "GET",
+                url: '@Url.Action("OrderedProductsData", "CustomerProduct")',
+                data: postData,
+                success: function (response) {
+                    if (response.Success) {
+                        BindOrdersGrid(response);
+                    }
+                    else {
+                        toastr.error(response.Message);
+                    }
+                },
+                error: function (error) {
+                    alert(error);
+                }
+            });
+        }
+        function BindOrdersGrid(response) {
+            var strHtml = `<table class="table table-bordered" id="tblOrder">
+                                    <thead class="success">
+                                        <tr>
+                                            <th style='display:none'></th>
+                                            <th>Picture</th>
+                                            <th>Product</th>
+                                            <th>Unit Price</th>
+                                            <th>Qty</th>
+                                            <th>Total</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>`;
+            response.data.forEach(function (item) {
+                strHtml += `<tr>
+                                    <td style="display:none">${item.Id}</td>
+                                    <td>
+                                      <img class="thumbnail" src='/Documents/images/product/${((item.FilePath == "" || item.FilePath == null) ? "NoImage.png" : item.FilePath)}' />
+                                     </td>
+                                      <td>
+                                        ${item.ProductName}
+                                     </td>
+                                    <td>${item.Price}</td>
+                                    <td>${item.Quantity}</td>
+                                    <td>${item.Total}</td>
+                                    <td>${parseJsonFormattedDate(item.OrderDate)}</td>
+                                    <td id=status_${item.Id}_pr>${GetOrderStatusFromId(item.OrderStatusId)}</td>
+                                   <td style="display:flex">
+                                   ${item.OrderStatusId == 1 ? "<a onclick=OpenDeleteModal("+item.Id+") href='#' class='btn btn-outline-primary deletebutton'><i class='fas fa-trash'></i></a>" : ""}
+                                    </td >
+                             </tr>`;
+            });
+            strHtml += `</table>`;
+            $("#divOrder").html(strHtml);
+            $('#tblOrder').addClass("table-striped");
+           
+            $('#tblOrder').DataTable({
+                "pageLength": 50,
+                "order": [],
+            });
+        }
+        function GetOrderStatusFromId(statusId) {
+            if (statusId == 1) {
+                return '<center><span style="background-color:#4e73df;color:white;padding:2px">Ordered</span></center>'
+            } else if (statusId == 2) {
+                return '<center><span style="background-color:#4e73df;color:white;padding:2px">Ordered</span></center>'
+            } else if (statusId == 3) {
+                return '<center><span style="background-color:#e7923b;color:white;padding:2px">Delivered</span></center>'
+            } else if (statusId == 4) {
+                return '<center><span style="background-color:#666;color:white;padding:2px">Canceled</span></center>'
+            } else {
+                return;
+            }
+        }
+        function ConfigureDate() {
+            var today = new Date();
+            var previoisMonthDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, new Date().getDate());
+
+            $("#FromDate").datepicker({
+
+                showOtherMonths: true,
+                selectOtherMonths: true,
+                changeMonth: true,
+                changeYear: true,
+                dateFormat: 'dd/mm/yy',
+                maxDate: today
+            });
+
+            $("#FromDate").datepicker("setDate", previoisMonthDate)
+                .on("change", function () {
+                    GetOrderData();
+                });
+            $("#ToDate").datepicker({
+
+                showOtherMonths: true,
+                selectOtherMonths: true,
+                changeMonth: true,
+                changeYear: true,
+                dateFormat: 'dd/mm/yy',
+                maxDate: today
+
+            })
+            $("#ToDate").datepicker("setDate", today)
+                .on("change", function () {
+                    GetOrderData();
+                });
+        }
+        function OpenDeleteModal(id) {
+            $("#DeleteModal").modal("show");
+            $("#hdnDelId").val(id);
+        }
+        var message = '@ViewBag.Messeage';
+       if (message) {
+            setTimeout(() => {
+                toastr.success(message);
+            }, 1000);
+        }
+    </script>
+}
